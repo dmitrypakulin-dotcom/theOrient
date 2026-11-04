@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta
+        name="description"
+        content="Просмотрщик B3D: открывайте модели БАЗИС, изучайте детали, измеряйте и меняйте материалы прямо в браузере."
+    />
+    <title>Nebro B3D</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="vendor/three.min.js" defer></script>
+    <script src="vendor/OrbitControls.js" defer></script>
+    <script src="vendor/pako_inflate.min.js" defer></script>
+    <script src="b3d-parser.js" defer></script>
+    <script src="b3d-cuts.js" defer></script>
+    <script src="b3d-hardware.js" defer></script>
+    <script src="b3d-scene.js" defer></script>
+    <script src="texture-utils.js" defer></script>
+    <script src="led-lighting.js" defer></script>
+    <script src="section-caps.js" defer></script>
+    <script src="section-tools.js" defer></script>
+    <script src="model-tree.js" defer></script>
+    <script src="part-drawing.js" defer></script>
+    <script src="viewer.js" defer></script>
+</head>
+    <body>
+        <main class="app" id="app">
+            <div id="snap-cursor" aria-hidden="true" hidden></div>
+            <div id="part-menu" class="part-menu" role="menu" aria-label="Действия с деталью" hidden>
+                <button id="hide-part" role="menuitem">Скрыть деталь</button
+                ><button id="context-isolate" role="menuitem">Изолировать</button
+                ><button id="context-drawing" role="menuitem">Чертёж</button
+                ><button id="context-focus" role="menuitem">Приблизить</button
+                ><button id="context-show-all" role="menuitem" disabled>Показать все</button>
+            </div>
+            <section class="viewport" aria-label="3D-просмотрщик">
+                <div
+                    class="canvas"
+                    id="canvas"
+                    tabindex="0"
+                    aria-label="3D-модель: мышь вращает, колесо приближает, правая кнопка перемещает."
+                >
+                    <div id="labels"></div>
+                    <div id="snap-label" class="snap-label" hidden></div>
+                    <div id="message" class="message" role="status">Откройте файл БАЗИС для просмотра 3D-модели<button id="welcome-open" class="primary wide" type="button">Открыть B3D-файл</button><p class="help">Можно перетащить файл в окно</p></div>
+                </div>
+                <div class="viewport-header">
+                    <div class="document-title">
+                        <div class="brand-wordmark">
+                            <span class="app-name">NEBRO <span>B3D</span></span>
+                            <h1 id="title">Просмотр 3D-проектов</h1>
+                        </div>
+                    </div>
+                </div>
+                <div class="viewport-footer">
+                    <span id="viewer-fps" title="Частота отрисовки просмотрщика">0 FPS</span
+                    ><span id="status" role="status" hidden>Готов к просмотру</span
+                    ><span id="mode-hint">Мышь - вращение · Колесо - масштаб · ПКМ - перемещение</span>
+                    
+                </div>
+            </section>
+            <nav class="tool-tabs" role="tablist" aria-label="Инструменты" aria-orientation="vertical">
+                <button
+                    id="toggle-panel"
+                    title="Скрыть панель"
+                    aria-label="Скрыть панель инструментов"
+                    aria-expanded="true"
+                    aria-controls="tools-panel"
+                >
+                    ☰
+                </button>
+                <button
+                    id="tab-view"
+                    role="tab"
+                    aria-controls="pane-view"
+                    aria-selected="true"
+                    title="Вид и навигация"
+                    aria-label="Вид и навигация"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m12 3 9 5v8l-9 5-9-5V8zM3 8l9 5 9-5M12 13v8" />
+                    </svg>
+                </button>
+                <button
+                    id="tab-parts"
+                    role="tab"
+                    aria-controls="pane-parts"
+                    aria-selected="false"
+                    tabindex="-1"
+                    title="Выбранная деталь"
+                    aria-label="Выбранная деталь"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5M8 8h8v8H8z" />
+                    </svg>
+                </button>
+                <button
+                    id="tab-tree"
+                    role="tab"
+                    aria-controls="pane-tree"
+                    aria-selected="false"
+                    tabindex="-1"
+                    title="Структура модели"
+                    aria-label="Структура модели"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 3h6v6H3zM15 9h6v5h-6zM15 17h6v5h-6zM6 9v11h9M6 12h9" />
+                    </svg>
+                </button>
+                <button
+                    id="tab-search"
+                    role="tab"
+                    aria-controls="pane-search"
+                    aria-selected="false"
+                    tabindex="-1"
+                    title="Поиск по позициям"
+                    aria-label="Поиск по позициям"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="10.5" cy="10.5" r="6.5" />
+                        <path d="m16 16 5 5" />
+                    </svg>
+                </button>
+                <button
+                    id="tab-measure"
+                    role="tab"
+                    aria-controls="pane-measure"
+                    aria-selected="false"
+                    tabindex="-1"
+                    title="Измерения"
+                    aria-label="Измерения"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m3 16 13-13 5 5L8 21zM7 12l2 2m2-6 2 2m2-6 2 2" />
+                    </svg>
+                </button>
+                <button
+                    id="tab-materials"
+                    role="tab"
+                    aria-controls="pane-materials"
+                    aria-selected="false"
+                    tabindex="-1"
+                    title="Материалы"
+                    aria-label="Материалы"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-3.7 1.5 1.5 0 0 1 1-2.6h2a4 4 0 0 0 4-4C21 6.5 17 3 12 3Z"
+                        />
+                        <circle cx="7.5" cy="10" r="1" />
+                        <circle cx="11" cy="6.8" r="1" />
+                        <circle cx="16" cy="8" r="1" />
+                        <circle cx="7.5" cy="15" r="1" />
+                    </svg>
+                </button>
+                <button
+                    id="tab-files"
+                    role="tab"
+                    aria-controls="pane-files"
+                    aria-selected="false"
+                    tabindex="-1"
+                    title="Модель и файлы"
+                    aria-label="Модель и файлы"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5h7l2 3h9v12H3V7Zm0 5h18" /></svg>
+                </button>
+                <button
+                    id="tab-render"
+                    role="tab"
+                    aria-controls="pane-render"
+                    aria-selected="false"
+                    tabindex="-1"
+                    title="Настройки рендера"
+                    aria-label="Настройки рендера"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m9 3-1 3-3 1v4l-2 1 2 1v4l3 1 1 3h6l1-3 3-1v-4l2-1-2-1V7l-3-1-1-3z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                </button>
+            </nav>
+            <aside class="panel" id="tools-panel">
+                <div class="panel-heading">
+                    <strong id="panel-title">Вид и навигация</strong
+                    ><span class="badge"
+                        ><span id="panel-units">мм</span><span id="position-count" hidden>0</span
+                        ><span id="measure-count" hidden>0</span></span
+                    >
+                    <div class="mobile-header-actions">
+                        <button
+                            id="header-focus"
+                            type="button"
+                            disabled
+                            title="&#1055;&#1088;&#1080;&#1073;&#1083;&#1080;&#1079;&#1080;&#1090;&#1100;"
+                            aria-label="&#1055;&#1088;&#1080;&#1073;&#1083;&#1080;&#1079;&#1080;&#1090;&#1100;"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="10" cy="10" r="6" />
+                                <path d="m15 15 5 5M7 10h6m-3-3v6" />
+                            </svg></button
+                        ><button
+                            id="header-show-all"
+                            type="button"
+                            disabled
+                            title="&#1055;&#1086;&#1082;&#1072;&#1079;&#1072;&#1090;&#1100; &#1074;&#1089;&#1105;"
+                            aria-label="&#1055;&#1086;&#1082;&#1072;&#1079;&#1072;&#1090;&#1100; &#1074;&#1089;&#1077; &#1076;&#1077;&#1090;&#1072;&#1083;&#1080;"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />
+                            </svg>
+                        </button>
+                    </div>
+                    <button
+                        id="resize-panel"
+                        class="resize-panel"
+                        aria-label="Развернуть панель"
+                        aria-expanded="false"
+                        title="Развернуть панель"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6" /></svg>
+                    </button>
+                </div>
+
+                <section class="tab-pane panel-section" id="pane-view" role="tabpanel" aria-labelledby="tab-view">
+                    <div class="view-navigation">
+                        <div id="view-cube-stage" class="view-cube-stage">
+                            <div id="view-cube" class="view-cube"></div>
+                        </div>
+                        <div class="switches">
+                            <label class="view-toggle"
+                                ><input id="perspective" type="checkbox" role="switch" checked /> Перспектива</label
+                            ><label class="view-toggle"
+                                ><input id="grid" type="checkbox" role="switch" checked /> Сетка и оси</label
+                            >
+                        </div>
+                    </div>
+                    <div class="zoom-row">
+                        <button id="zoom-out" aria-label="Уменьшить">−</button><output id="zoom">100%</output
+                        ><button id="zoom-in" aria-label="Увеличить">＋</button
+                        ><button id="fullscreen" title="Полный экран">⛶ Экран</button>
+                    </div>
+                    <div class="section-tools">
+                        <div class="section-heading">
+                            <label class="section-toggle"
+                                ><input id="section-enabled" type="checkbox" />
+                                <span
+                                    >&#1056;&#1072;&#1079;&#1088;&#1077;&#1079;
+                                    &#1084;&#1086;&#1076;&#1077;&#1083;&#1080;</span
+                                ></label
+                            ><label
+                                class="section-invert"
+                                title="&#1055;&#1086;&#1082;&#1072;&#1079;&#1072;&#1090;&#1100; &#1086;&#1073;&#1088;&#1072;&#1090;&#1085;&#1091;&#1102; &#1089;&#1090;&#1086;&#1088;&#1086;&#1085;&#1091;"
+                                ><input id="section-reverse" type="checkbox" />
+                                <span>&#1048;&#1085;&#1074;&#1077;&#1088;&#1089;&#1080;&#1103;</span></label
+                            >
+                        </div>
+                        <div class="section-settings">
+                            <label class="section-axis-field" for="section-axis"
+                                ><span>&#1054;&#1089;&#1100;</span
+                                ><select id="section-axis">
+                                    <option value="x">X</option>
+                                    <option value="y">Y</option>
+                                    <option value="z">Z</option>
+                                </select></label
+                            ><label class="section-position-field" for="section-position"
+                                ><span class="section-position-heading"
+                                    ><span>&#1055;&#1086;&#1083;&#1086;&#1078;&#1077;&#1085;&#1080;&#1077;</span
+                                    ><output id="section-value">50%</output></span
+                                ><input id="section-position" type="range" min="0" max="100" step="0.1" value="50"
+                            /></label>
+                        </div>
+                    </div>
+                    <div class="view-display-options">
+                        <label class="view-toggle"
+                            ><input id="transparent" type="checkbox" role="switch" /> Прозрачность</label
+                        ><label class="view-toggle"
+                            ><input id="edges" type="checkbox" role="switch" checked /> Контуры деталей</label
+                        ><label class="view-toggle"
+                            ><input id="hardware" type="checkbox" role="switch" /> Контуры крепежа</label
+                        ><label class="view-toggle"
+                            ><input id="selection-hardware" type="checkbox" role="switch" checked /> Крепёж выбранной
+                            детали</label
+                        >
+                    </div>
+                </section>
+                <section
+                    class="tab-pane panel-section"
+                    id="pane-search"
+                    role="tabpanel"
+                    aria-labelledby="tab-search"
+                    hidden
+                >
+                    <div class="position-search-row">
+                        <input
+                            id="position-search"
+                            type="search"
+                            placeholder="Позиция из B3D, например 4"
+                            aria-label="Поиск деталей по позиции"
+                        /><button
+                            id="clear-position-search"
+                            type="button"
+                            title="Очистить поиск"
+                            aria-label="Очистить поиск"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                        </button>
+                    </div>
+                    <div id="position-results" class="position-results"></div>
+                </section>
+                <section
+                    class="tab-pane panel-section selected-section"
+                    id="pane-parts"
+                    role="tabpanel"
+                    aria-labelledby="tab-parts"
+                    hidden
+                >
+                    <div class="part-info">
+                        <h2 id="selected-name">Не выбрана</h2>
+                        <div id="part-dimensions" class="dimension-value">-</div>
+                        <dl class="compact">
+                            <dt>Позиция</dt>
+                            <dd id="part-position">-</dd>
+                            <dt>Материал</dt>
+                            <dd id="selected-info">Нажмите на панель в модели</dd>
+                        </dl>
+                        <div id="part-layers" class="part-layers" hidden>
+                            <div class="section-label">СКЛЕЕННАЯ / МНОГОСЛОЙНАЯ ДЕТАЛЬ</div>
+                            <strong id="part-layer-total"></strong>
+                            <ol id="part-layers-list"></ol>
+                        </div>
+                    </div>
+                    <div class="pane-footer part-actions">
+                        <button id="focus-part" disabled title="Приблизить" aria-label="Приблизить">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="10" cy="10" r="6" />
+                                <path d="m15 15 5 5M7 10h6m-3-3v6" />
+                            </svg></button
+                        ><button
+                            id="isolate-part"
+                            disabled
+                            aria-pressed="false"
+                            title="Изолировать"
+                            aria-label="Изолировать"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M8 8h8v8H8z" />
+                            </svg></button
+                        ><button id="show-all" disabled title="Показать все детали" aria-label="Показать все детали">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />
+                            </svg>
+                        </button>
+                    </div>
+                </section>
+                <section
+                    class="tab-pane panel-section"
+                    id="pane-tree"
+                    role="tabpanel"
+                    aria-labelledby="tab-tree"
+                    hidden
+                >
+                    <p id="tree-empty" class="help">Откройте модель, чтобы увидеть её структуру.</p>
+                    <div id="model-tree" role="tree" aria-label="Детали и группы модели"></div>
+                    <div class="pane-footer part-actions tree-toolbar">
+                        <button id="tree-focus" type="button" disabled title="Приблизить" aria-label="Приблизить">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="10" cy="10" r="6" />
+                                <path d="m15 15 5 5M7 10h6m-3-3v6" />
+                            </svg></button
+                        ><button
+                            id="tree-show-all"
+                            type="button"
+                            disabled
+                            title="Показать всё"
+                            aria-label="Показать всё"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />
+                            </svg>
+                        </button>
+                    </div>
+                </section>
+                <section
+                    class="tab-pane panel-section"
+                    id="pane-measure"
+                    role="tabpanel"
+                    aria-labelledby="tab-measure"
+                    hidden
+                >
+                    <div id="snap-status" role="status" hidden></div>
+                    <div class="measurement-dock">
+                        <ol id="measure-list" class="measure-list"></ol>
+                        <div class="button-grid">
+                            <button id="undo-measure" disabled>Отменить</button
+                            ><button id="clear-measures" disabled>Очистить</button>
+                        </div>
+                    </div>
+                </section>
+                <section
+                    class="tab-pane panel-section"
+                    id="pane-materials"
+                    role="tabpanel"
+                    aria-labelledby="tab-materials"
+                    hidden
+                >
+                    <h2 id="color-target">Выберите деталь или материал</h2>
+                    <label class="field-label" for="color-scope">Применять к</label
+                    ><select id="color-scope">
+                        <option value="material">К деталям с тем же материалом</option>
+                        <option value="part">Только к выбранной детали</option>
+                        <option value="all">Ко всей модели</option>
+                    </select>
+                    <div class="button-grid three material-mode">
+                        <button id="mode-color" aria-pressed="true">Цвет</button
+                        ><button id="mode-texture" aria-pressed="false">Текстура</button
+                        ><button id="mode-light" aria-pressed="false">Свет</button>
+                    </div>
+                    <div id="material-color-editor">
+                        <div class="color-picker">
+                            <input
+                                id="material-color"
+                                type="color"
+                                value="#dce0df"
+                                aria-label="Выбрать цвет материала"
+                                disabled
+                            /><label for="color-hex"
+                                >HEX<input id="color-hex" value="#DCE0DF" maxlength="7" spellcheck="false" disabled
+                            /></label>
+                        </div>
+                        <div id="color-swatches" class="color-swatches" aria-label="Готовые цвета"></div>
+                        <p id="color-info" hidden></p>
+                        <div class="button-grid">
+                            <button id="reset-color" disabled>Сбросить цвет</button
+                            ><button id="reset-all-colors" disabled>Сбросить всё</button>
+                        </div>
+                    </div>
+                    <div class="texture-editor" id="material-texture-editor" hidden>
+                        <div class="section-label">ТЕКСТУРА</div>
+                        <input id="texture-input" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+                        <div class="texture-upload-row">
+                            <div class="texture-thumbnail">
+                                <div id="texture-placeholder" class="texture-placeholder">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        width="28"
+                                        height="28"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        aria-hidden="true"
+                                    >
+                                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                                        <circle cx="8" cy="8" r="1.5" />
+                                        <path d="m3 17 5-5 4 4 4-6 5 7" />
+                                    </svg>
+                                    <span>Нет текстуры</span>
+                                </div>
+                                <div id="texture-preview-wrap" hidden>
+                                    <img id="texture-preview" alt="Текстура материала" /><span id="texture-name"></span>
+                                </div>
+                            </div>
+                            <div class="texture-upload-actions">
+                                <button id="load-texture" disabled>Загрузить</button
+                                ><button id="remove-texture" disabled>Удалить</button>
+                            </div>
+                        </div>
+                        <div class="texture-transform-row">
+                            <div>
+                                <label class="field-label" for="texture-scale">Размер, мм</label
+                                ><input
+                                    id="texture-scale"
+                                    type="number"
+                                    min="10"
+                                    max="10000"
+                                    step="10"
+                                    value="500"
+                                    disabled
+                                />
+                            </div>
+                            <div>
+                                <label class="field-label" for="texture-rotation">Поворот</label
+                                ><select id="texture-rotation" disabled>
+                                    <option value="0">0°</option>
+                                    <option value="90">90°</option>
+                                    <option value="180">180°</option>
+                                    <option value="270">270°</option>
+                                </select>
+                            </div>
+                        </div>
+                        <label class="field-label" for="texture-orientation">Направление рисунка</label
+                        ><select id="texture-orientation" disabled>
+                            <option value="auto">Из B3D · отдельно для каждой детали</option>
+                            <option value="x">Вдоль локальной оси X</option>
+                            <option value="y">Вдоль локальной оси Y</option></select
+                        ><label class="render-check"
+                            ><input id="texture-mirror" type="checkbox" checked disabled /> Зеркальное соединение
+                            текстуры</label
+                        >
+                        <p id="texture-status" class="help" role="status"></p>
+                    </div>
+                    <div id="material-light-editor" hidden>
+                        <label class="render-check"
+                            ><input id="material-glow" type="checkbox" disabled /> Включить LED-подсветку</label
+                        ><button id="choose-light-face" class="wide" disabled>Выбрать светящуюся грань</button
+                        ><label class="field-label" for="light-color">Цвет света</label
+                        ><input id="light-color" type="color" value="#fff1d6" disabled /><label class="render-range"
+                            >Яркость <output id="light-power-value">1</output
+                            ><input
+                                id="light-power"
+                                type="range"
+                                min="0"
+                                max="5"
+                                step="0.1"
+                                value="1"
+                                disabled /></label
+                        ><label class="field-label" for="light-distance">Дальность, мм</label
+                        ><input
+                            id="light-distance"
+                            type="number"
+                            min="50"
+                            max="10000"
+                            step="50"
+                            value="1200"
+                            disabled
+                        />
+                        <p id="light-status" class="help" role="status"></p>
+                    </div>
+                    <div class="section-label ruler-heading">МАТЕРИАЛЫ МОДЕЛИ</div>
+                    <div id="material-list" class="material-list"></div>
+                </section>
+                <section
+                    class="tab-pane panel-section render-pane"
+                    id="pane-render"
+                    role="tabpanel"
+                    aria-labelledby="tab-render"
+                    hidden
+                >
+                    <div class="section-label">ПРЕСЕТ</div>
+                    <div class="button-grid three render-presets">
+                        <button id="render-fast">Быстрый</button><button id="render-balanced">Обычный</button
+                        ><button id="render-studio">Студия</button>
+                    </div>
+                    <p class="help">Быстрый - для больших проектов. Студия - мягкий свет и тени.</p>
+                    <div class="render-group">
+                        <div class="section-label">КАЧЕСТВО</div>
+                        <label class="field-label" for="render-quality">Разрешение</label
+                        ><select id="render-quality">
+                            <option value="0.75">Экономное · 0,75×</option>
+                            <option value="1">Стандартное · 1×</option>
+                            <option value="1.5">Повышенное · 1,5×</option>
+                            <option value="2">Высокое · до 2×</option></select
+                        ><label class="field-label" for="render-mode">Отображение модели</label
+                        ><select id="render-mode">
+                            <option value="solid">Поверхности</option>
+                            <option value="wireframe">Каркас из треугольников</option></select
+                        ><label class="render-check"
+                            ><input id="render-flat" type="checkbox" /> Плоское затенение граней</label
+                        >
+                    </div>
+                    <div class="render-group">
+                        <div class="section-label">СВЕТ И ЦВЕТ</div>
+                        <label class="render-range" for="render-ambient"
+                            ><span>Общий свет</span><output id="render-ambient-value"></output
+                            ><input id="render-ambient" type="range" min="0" max="2" step="0.05" /></label
+                        ><label class="render-range" for="render-key"
+                            ><span>Основной свет</span><output id="render-key-value"></output
+                            ><input id="render-key" type="range" min="0" max="3" step="0.05" /></label
+                        ><label class="render-range" for="render-fill"
+                            ><span>Заполняющий свет</span><output id="render-fill-value"></output
+                            ><input id="render-fill" type="range" min="0" max="2" step="0.05" /></label
+                        ><label class="render-range" for="render-angle"
+                            ><span>Направление света</span><output id="render-angle-value"></output
+                            ><input id="render-angle" type="range" min="0" max="360" step="5" /></label
+                        ><label class="field-label" for="render-tone">Тональная обработка</label
+                        ><select id="render-tone">
+                            <option value="none">Без обработки</option>
+                            <option value="aces">Кино · ACES</option>
+                            <option value="reinhard">Мягкая · Reinhard</option></select
+                        ><label class="render-range" for="render-exposure"
+                            ><span>Экспозиция</span><output id="render-exposure-value"></output
+                            ><input id="render-exposure" type="range" min="0.3" max="2" step="0.05"
+                        /></label>
+                    </div>
+                    <div class="render-group">
+                        <div class="section-label">ТЕНИ</div>
+                        <label class="render-check"
+                            ><input id="render-shadows" type="checkbox" /> Тени модели и пол</label
+                        ><label class="field-label" for="render-shadow-quality">Детализация теней</label
+                        ><select id="render-shadow-quality">
+                            <option value="512">Быстро · 512</option>
+                            <option value="1024">Стандарт · 1024</option>
+                            <option value="2048">Детально · 2048</option>
+                        </select>
+                        <p class="help">Тени требуют больше ресурсов. Пол располагается под моделью.</p>
+                    </div>
+                    <div class="render-group">
+                        <div class="section-label">МАТЕРИАЛЫ</div>
+                        <label class="render-range" for="render-roughness"
+                            ><span>Матовая поверхность</span><output id="render-roughness-value"></output
+                            ><input id="render-roughness" type="range" min="0.05" max="1" step="0.05"
+                        /></label>
+                        <p class="help">Общая шероховатость панелей; выбранные цвета сохраняются.</p>
+                    </div>
+                    <div class="render-group">
+                        <div class="section-label">ФОН И КАМЕРА</div>
+                        <label class="render-background" for="render-background"
+                            ><span>Цвет фона</span><input id="render-background" type="color" value="#ffffff"
+                        /></label>
+                        <div class="button-grid three">
+                            <button id="render-bg-white">Белый</button><button id="render-bg-gray">Серый</button
+                            ><button id="render-bg-dark">Тёмный</button>
+                        </div>
+                        <label class="render-range" for="render-fov"
+                            ><span>Угол обзора камеры</span><output id="render-fov-value"></output
+                            ><input id="render-fov" type="range" min="20" max="75" step="1"
+                        /></label>
+                    </div>
+                    <div class="render-info" id="render-info" role="status">WebGL · настройки применяются сразу</div>
+                    <button id="render-reset" class="wide">Сбросить настройки рендера</button>
+                    <p class="help">Настройки применяются к текущему просмотру.</p>
+                </section>
+                <section
+                    class="tab-pane panel-section files-pane"
+                    id="pane-files"
+                    role="tabpanel"
+                    aria-labelledby="tab-files"
+                    hidden
+                >
+                    <div class="section-label">ТЕКУЩАЯ МОДЕЛЬ</div>
+                    <div class="model-summary">
+                        <div class="model-summary-top">
+                            <span class="model-type">B3D</span>
+                            <h2 id="detail-name">-</h2>
+                        </div>
+                        <div id="dimensions" class="summary-dimensions">-</div>
+                        <div class="summary-caption">Ш × В × Г, мм</div>
+                        <p id="model-stats" class="summary-stats">-</p>
+                        <details class="model-meta">
+                            <summary>Сведения о файле <span id="size">-</span></summary>
+                            <dl class="compact">
+                                <dt>Формат</dt>
+                                <dd id="format">-</dd>
+                                <dt>Изменён</dt>
+                                <dd id="modified">-</dd>
+                            </dl>
+                        </details>
+                    </div>
+                    <button id="open" class="wide">＋ Открыть модель</button
+                    ><input id="file-input" type="file" accept=".b3d" multiple hidden />
+                    <p class="help">
+                        Откройте .b3d или перетащите его в окно. Файлы обрабатываются на вашем устройстве.
+                    </p>
+                    <div class="section-label">ОТКРЫТЫЕ ФАЙЛЫ</div>
+                    <div id="local-files" class="local-files"></div>
+                    <p class="help">
+                        Изменения материалов и измерения действуют до переключения модели или перезагрузки страницы.
+                    </p>
+                </section>
+            </aside>
+        </main>
+        <noscript>Для просмотра моделей включите JavaScript в браузере.</noscript>
+    </body>
+</html>
