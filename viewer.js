@@ -392,11 +392,12 @@ const textureLibrary = [
     { name: 'ЛДСП Egger Флитвуд шампань Н3451 ST22 2800207016', path: 'textures/wood/ЛДСП Egger Флитвуд шампань Н3451 ST22 2800207016.jpg' },
     { name: 'ЛДСП Egger Фуксия розовая U337 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Фуксия розовая U337 ST9 2800207016.jpg' },
     { name: 'ЛДСП Egger Хромикс белый F637 ST16 2800207016', path: 'textures/wood/ЛДСП Egger Хромикс белый F637 ST16 2800207016.jpg' },
-
 ];
+
 const mm = (n) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n);
 const dimensionText = (values) => values.map(mm).join(' × ');
 const sizeLabel = (bytes) => new Intl.NumberFormat('ru', { maximumFractionDigits: 1 }).format(bytes / 1024) + ' КБ';
+
 const renderDefaults = {
     quality: 1,
     mode: 'solid',
@@ -413,6 +414,7 @@ const renderDefaults = {
     background: '#ffffff',
     fov: 38
 };
+
 const renderPresets = {
     fast: { ...renderDefaults, quality: 0.75, shadowQuality: 512 },
     balanced: { ...renderDefaults },
@@ -430,6 +432,7 @@ const renderPresets = {
     }
 };
 let renderSettings = { ...renderDefaults };
+
 function normalizeRenderSettings(value) {
     const result = { ...renderDefaults };
     if (!value || typeof value !== 'object') return result;
@@ -457,6 +460,7 @@ function normalizeRenderSettings(value) {
         result.background = value.background;
     return result;
 }
+
 function syncRenderControls() {
     for (const key of Object.keys(renderDefaults)) {
         const id = key === 'shadowQuality' ? 'shadow-quality' : key;
@@ -475,6 +479,7 @@ function syncRenderControls() {
             String(Object.keys(renderDefaults).every((key) => preset[key] === renderSettings[key]))
         );
 }
+
 function applyRenderSettings() {
     syncRenderControls();
     $('canvas').style.background = renderSettings.background;
@@ -563,6 +568,7 @@ function applyRenderSettings() {
     scene.updateMatrixWorld(true);
     render();
 }
+
 function initializeViewCube() {
     const cube = $('view-cube');
     const faces = [
@@ -610,6 +616,7 @@ function initializeViewCube() {
             }
     updateViewCube();
 }
+
 function updateViewCube() {
     if (!window.THREE) return;
     const rotation = engine
@@ -627,6 +634,7 @@ function updateViewCube() {
     const values = matrix.elements.map((value, index) => value * signs[index % 4] * signs[Math.floor(index / 4)]);
     $('view-cube').style.transform = 'matrix3d(' + values.join(',') + ')';
 }
+
 function updateCameraProjection() {
     const camera = engine.camera;
     camera.aspect = Math.max(1, $('canvas').clientWidth) / Math.max(1, $('canvas').clientHeight);
@@ -641,6 +649,7 @@ function updateCameraProjection() {
     }
     camera.updateProjectionMatrix();
 }
+
 function setPerspective(enabled) {
     $('perspective').checked = enabled;
     if (!engine || Boolean(engine.camera.isPerspectiveCamera) === enabled) return;
@@ -659,6 +668,7 @@ function setPerspective(enabled) {
     clearHover();
     render();
 }
+
 function initialize3D() {
     if (engine) return engine;
     if (
@@ -723,6 +733,7 @@ function initialize3D() {
     setPerspective($('perspective').checked);
     return engine;
 }
+
 function installPointerInteractions(element, controls) {
     const pointers = new Set();
     let down = null,
