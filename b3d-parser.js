@@ -186,18 +186,32 @@
                         [x + radius * Math.cos(b), y + radius * Math.sin(b)]
                     ]);
                 }
-            } else if (tag === 18) {
+           } else if (tag === 18) {
                 const x = r.double(),
                     y = r.double(),
                     ax = r.double(),
                     ay = r.double(),
                     bx = r.double(),
                     by = r.double();
-                r.byte();
+                    
+                // 1. Считываем байт направления в переменную
+                const dir = r.byte(); 
+                
                 const a = Math.atan2(ay - y, ax - x),
                     b = Math.atan2(by - y, bx - x),
                     radius = Math.hypot(ax - x, ay - y);
-                let delta = Math.atan2(Math.sin(b - a), Math.cos(b - a));
+                    
+                let delta = b - a;
+                
+                // 2. Нормализуем угол
+                while (delta < -Math.PI) delta += 2 * Math.PI;
+                while (delta > Math.PI) delta -= 2 * Math.PI;
+                
+                // 3. КОРРЕКЦИЯ НАПРАВЛЕНИЯ
+                // Если байт говорит идти в одну сторону, а кратчайший путь ведет в другую — разворачиваем дугу
+                if (dir === 1 && delta < 0) delta += 2 * Math.PI;
+                if (dir === 0 && delta > 0) delta -= 2 * Math.PI;
+
                 const steps = Math.max(4, Math.ceil(Math.abs(delta) * 16));
                 let previous = [ax, ay];
                 for (let j = 1; j <= steps; j++) {

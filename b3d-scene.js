@@ -229,10 +229,27 @@
                         const shapes = [];
                         loops.forEach((loop, i) => {
                             if (depth[i] % 2) return;
-                            const shape = new THREE.Shape(loop.map((p) => new THREE.Vector2(...p)));
+                            
+                            // 1. Создаем точки для основного контура
+                            const shapePoints = loop.map((p) => new THREE.Vector2(...p));
+                            // Принудительно делаем внешний контур против часовой стрелки (CCW)
+                            if (THREE.ShapeUtils.isClockWise(shapePoints)) {
+                                shapePoints.reverse();
+                            }
+                            
+                            const shape = new THREE.Shape(shapePoints);
+                            
                             loops.forEach((hole, j) => {
-                                if (depth[j] === depth[i] + 1 && inside(hole[0], loop))
-                                    shape.holes.push(new THREE.Path(hole.map((p) => new THREE.Vector2(...p))));
+                                if (depth[j] === depth[i] + 1 && inside(hole[0], loop)) {
+                                    // 2. Создаем точки для отверстий
+                                    const holePoints = hole.map((p) => new THREE.Vector2(...p));
+                                    // Принудительно делаем отверстия по часовой стрелке (CW)
+                                    if (!THREE.ShapeUtils.isClockWise(holePoints)) {
+                                        holePoints.reverse();
+                                    }
+                                    
+                                    shape.holes.push(new THREE.Path(holePoints));
+                                }
                             });
                             shapes.push(shape);
                         });
@@ -410,9 +427,9 @@
                                         template.materials.filter(Boolean).join(' / ') || get(f, 'Name', name);
                                     const dark = /черн|black/i.test(materialName);
                                     const material = new THREE.MeshStandardMaterial({
-                                        color: dark ? 0x303236 : 0xb9bfc5,
-                                        roughness: 0.5,
-                                        metalness: dark ? 0.1 : 0.55,
+                                        color: dark ? 0x1a1a1a : 0xe0e0e0, // Более светлый серебристый
+                                        roughness: dark ? 0.4 : 0.15,      // Гладкая поверхность
+                                        metalness: dark ? 0.5 : 0.9,       // Сильный металл
                                         side: THREE.DoubleSide,
                                         shadowSide: THREE.BackSide,
                                         polygonOffset: true,
@@ -440,7 +457,7 @@
                                         dimensions: size.toArray().sort((a, b) => b - a)
                                     };
                                     const outline = new THREE.LineSegments(
-                                        new THREE.EdgesGeometry(geometry, 30),
+                                        new THREE.EdgesGeometry(geometry, 65),
                                         new THREE.LineBasicMaterial({
                                             color: 0x39434a,
                                             transparent: true,
@@ -476,7 +493,7 @@
                             if (!contourGeometry) contourGeometry = new THREE.EdgesGeometry(mesh.geometry, 30);
                             const outline = new THREE.LineSegments(
                                 contourGeometry,
-                                new THREE.LineBasicMaterial({ color: 0x197c45, depthTest: false, depthWrite: false })
+                                new THREE.LineBasicMaterial({ color: 0x197c45, depthTest: true, depthWrite: false })
                             );
                             outline.name = name;
                             outline.userData.isFastenerContour = true;
@@ -501,6 +518,60 @@
                                 });
                         }
                         if (holes.length) {
+                            // 1. Создаем объемные цилиндры, если нет готового 3D-меша
+                            if (!solid) {
+                                for (const hole of holes) {
+                                    const fields = hole.value,
+                                        radius = get(fields, 'Radius', 0),
+                                        depth = get(fields, 'Depth', 0);
+                                    const axis = vector(fields, ['DirX', 'DirY', 'DirZ']);
+                                    
+                                    if (!(radius > 0 && depth > 0) || axis.lengthSq() < 0.5) continue;
+                                    
+                                    axis.normalize();
+                                    const start = vector(fields, ['X', 'Y', 'Z']);
+                                    const cylGeo = new THREE.CylinderGeometry(radius, radius, depth, 16);
+                                    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);
+                                    const centerPos = start.clone().addScaledVector(axis, depth / 2);
+                                    
+                                    const matrixHole = new THREE.Matrix4().compose(centerPos, quat, new THREE.Vector3(1, 1, 1)).premultiply(matrix);
+                                    cylGeo.applyMatrix4(matrixHole);
+                                    
+                                    const holeMat = new THREE.MeshStandardMaterial({
+                                        color: 0xcccccc, 
+                                        metalness: 0.5,
+                                        roughness: 0.4,
+                                        side: THREE.DoubleSide
+                                    });
+                                    
+                                    const holeMesh = new THREE.Mesh(cylGeo, holeMat);
+                                    
+                                    holeMesh.name = name;
+                                    holeMesh.userData = {
+                                        isHardware: true,
+                                        localMatrix: matrix.clone(),
+                                        materialName: 'Крепеж',
+                                        thickness: depth,
+                                        baseThickness: depth,
+                                        layers: [],
+                                        isLayered: false,
+                                        fields: fields,
+                                        baseUV: new Float32Array(0),
+                                        sideUVRanges: [],
+                                        textureAngle: 0,
+                                        textureDirection: 0,
+                                        artPos: '',
+                                        dimensions: [radius * 2, depth, radius * 2].sort((a, b) => b - a),
+                                        treeNodeId: treeNode.id 
+                                    };
+
+                                    group.add(holeMesh);
+                                    hardware.add(holeMesh); 
+                                    hardwareMeshes.push(holeMesh);
+                                }
+                            }
+                            
+                            // 2. Зеленые контуры (с исправленным depthTest: true)
                             const lines = [];
                             for (const hole of holes) {
                                 const fields = hole.value,
@@ -546,7 +617,7 @@
                                     geometry,
                                     new THREE.LineBasicMaterial({
                                         color: 0x197c45,
-                                        depthTest: false,
+                                        depthTest: true,
                                         depthWrite: false
                                     })
                                 );
@@ -565,7 +636,7 @@
                                     new THREE.EdgesGeometry(geometry),
                                     new THREE.LineBasicMaterial({
                                         color: 0x96d56a,
-                                        depthTest: false,
+                                        depthTest: true,
                                         transparent: true,
                                         opacity: 0.65
                                     })

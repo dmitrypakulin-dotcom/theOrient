@@ -66,7 +66,334 @@ const snapNames = {
     plane: 'Перпендикуляр к плоскости',
     surface: 'Поверхность'
 };
-const swatches = ['#ffffff', '#dce0df', '#beb9ac', '#d1b48c', '#8e6243', '#453b33', '#303640', '#15191f'];
+const swatches = [
+    '#ffffff', // Белый
+    '#f5f5f0', // Слоновая кость
+    '#dce0df', // Светло-серый
+    '#beb9ac', // Бежевый
+    '#d1b48c', // Светлый дуб
+    '#b88a53', // Натуральный дуб
+    '#8e6243', // Тёмный орех
+    '#5c4033', // Венге
+    '#453b33', // Тёмно-коричневый
+    '#303640', // Графит
+    '#15191f', // Чёрный
+    '#8B0000'  // Тёмно-красный (для крепежа)
+];
+// БАЗА МАТЕРИАЛОВ (Справочник)
+// Ключ - название материала из B3D (или его часть).
+// Значение - цвет и параметры шероховатости.
+const materialDatabase = {
+    // Поиск идет по вхождению подстроки (регистр не важен)
+    'дуб бардолино': { color: '#c2a77d', roughness: 0.7 },
+    'серый перламутровый': { color: '#9fa3a6', roughness: 0.6 },
+    'хдф': { color: '#f0ece1', roughness: 0.9 }, // Белый лак
+    'крепеж': { color: '#cccccc', roughness: 0.2, metalness: 0.8 }, // Серебристый металл
+    'петля': { color: '#aaaaaa', roughness: 0.3, metalness: 0.9 },
+    'направляющая': { color: '#e0e0e0', roughness: 0.4, metalness: 0.7 }
+};
+// БАЗА ТЕКСТУР (сгенерировано из списка)
+const textureLibrary = [
+    // --- АВТОСГЕНЕРИРОВАННЫЙ СПИСОК COLOR ---
+    { name: 'U104 ST9 Алебастр белый', path: 'textures/color/U104 ST9 Алебастр белый.jpg' },
+    { name: 'U107 ST9 Бархат жёлтый', path: 'textures/color/U107 ST9 Бархат жёлтый.jpg' },
+    { name: 'U108 ST9 Ванильный жёлтый', path: 'textures/color/U108 ST9 Ванильный жёлтый.jpg' },
+    { name: 'U113 ST9 Коттон бежевый', path: 'textures/color/U113 ST9 Коттон бежевый.jpg' },
+    { name: 'U114 ST9 Жёлтый бриллиант', path: 'textures/color/U114 ST9 Жёлтый бриллиант.jpg' },
+    { name: 'U131 ST9 Цитрусовый жёлтый', path: 'textures/color/U131 ST9 Цитрусовый жёлтый.jpg' },
+    { name: 'U140 ST9 Шафрановый жёлтый', path: 'textures/color/U140 ST9 Шафрановый жёлтый.jpg' },
+    { name: 'U146 ST9 Кукурузный жёлтый', path: 'textures/color/U146 ST9 Кукурузный жёлтый.jpg' },
+    { name: 'U156 ST9 Бежевый песок', path: 'textures/color/U156 ST9 Бежевый песок.jpg' },
+    { name: 'U163 ST9 Карри жёлтый', path: 'textures/color/U163 ST9 Карри жёлтый.jpg' },
+    { name: 'U200 ST9 Бежевый', path: 'textures/color/U200 ST9 Бежевый.jpg' },
+    { name: 'U201 ST9 Серая галька', path: 'textures/color/U201 ST9 Серая галька.jpg' },
+    { name: 'U216 ST9 Камель бежевый', path: 'textures/color/U216 ST9 Камель бежевый.jpg' },
+    { name: 'U222 ST9 Крем бежевый', path: 'textures/color/U222 ST9 Крем бежевый.jpg' },
+    { name: 'U232 ST9 Абрикос нюд', path: 'textures/color/U232 ST9 Абрикос нюд.jpg' },
+    { name: 'U311 ST9 Бургундский красный', path: 'textures/color/U311 ST9 Бургундский красный.jpg' },
+    { name: 'U313 ST9 Белая роза', path: 'textures/color/U313 ST9 Белая роза.jpg' },
+    { name: 'U321 ST9 Красный китайский', path: 'textures/color/U321 ST9 Красный китайский.jpg' },
+    { name: 'U323 ST9 Ярко-красный', path: 'textures/color/U323 ST9 Ярко-красный.jpg' },
+    { name: 'U325 ST9 Розовый антик', path: 'textures/color/U325 ST9 Розовый антик.jpg' },
+    { name: 'U328 ST9 Помадный красный', path: 'textures/color/U328 ST9 Помадный красный.jpg' },
+    { name: 'U330 ST9 Баклажан фиолетовый', path: 'textures/color/U330 ST9 Баклажан фиолетовый.jpg' },
+    { name: 'U332 ST9 Оранжевый', path: 'textures/color/U332 ST9 Оранжевый.jpg' },
+    { name: 'U337 ST9 Фуксия розовая', path: 'textures/color/U337 ST9 Фуксия розовая.jpg' },
+    { name: 'U340 ST9 Щербет оранж', path: 'textures/color/U340 ST9 Щербет оранж.jpg' },
+    { name: 'U350 ST9 Сиена оранж', path: 'textures/color/U350 ST9 Сиена оранж.jpg' },
+    { name: 'U363 ST9 Фламинго розовый', path: 'textures/color/U363 ST9 Фламинго розовый.jpg' },
+    { name: 'U390 ST9 Индийский красный', path: 'textures/color/U390 ST9 Индийский красный.jpg' },
+    { name: 'U399 ST9 Красный гранат', path: 'textures/color/U399 ST9 Красный гранат.jpg' },
+    { name: 'U400 ST9 Фиолетовый нежный', path: 'textures/color/U400 ST9 Фиолетовый нежный.jpg' },
+    { name: 'U404 ST9 Крокус фиолетовый', path: 'textures/color/U404 ST9 Крокус фиолетовый.jpg' },
+    { name: 'U414 ST9 Фиолетовый темный', path: 'textures/color/U414 ST9 Фиолетовый темный.jpg' },
+    { name: 'U420 ST9 Лиловый', path: 'textures/color/U420 ST9 Лиловый.jpg' },
+    { name: 'U430 ST9 Фиолетовый', path: 'textures/color/U430 ST9 Фиолетовый.jpg' },
+    { name: 'U500 ST9 Аква голубой', path: 'textures/color/U500 ST9 Аква голубой.jpg' },
+    { name: 'U504 ST9 Альпийское озеро', path: 'textures/color/U504 ST9 Альпийское озеро.jpg' },
+    { name: 'U507 ST9 Дымчато-голубой', path: 'textures/color/U507 ST9 Дымчато-голубой.jpg' },
+    { name: 'U515 ST9 Французский голубой', path: 'textures/color/U515 ST9 Французский голубой.jpg' },
+    { name: 'U522 ST9 Голубой горизонт', path: 'textures/color/U522 ST9 Голубой горизонт.jpg' },
+    { name: 'U525 ST9 Делфт голубой', path: 'textures/color/U525 ST9 Делфт голубой.jpg' },
+    { name: 'U533 ST9 Полярный голубой', path: 'textures/color/U533 ST9 Полярный голубой.jpg' },
+    { name: 'U540 ST9 Деним голубой', path: 'textures/color/U540 ST9 Деним голубой.jpg' },
+    { name: 'U560 ST9 Синяя глубина', path: 'textures/color/U560 ST9 Синяя глубина.jpg' },
+    { name: 'U570 ST9 Синяя ночь', path: 'textures/color/U570 ST9 Синяя ночь.jpg' },
+    { name: 'U599 ST9 Индиго синий', path: 'textures/color/U599 ST9 Индиго синий.jpg' },
+    { name: 'U600 ST9 Зелёный май', path: 'textures/color/U600 ST9 Зелёный май.jpg' },
+    { name: 'U606 ST9 Зелёный лес', path: 'textures/color/U606 ST9 Зелёный лес.jpg' },
+    { name: 'U608 ST9 Зелёный фисташковый', path: 'textures/color/U608 ST9 Зелёный фисташковый.jpg' },
+    { name: 'U617 ST9 Зелёный васаби', path: 'textures/color/U617 ST9 Зелёный васаби.jpg' },
+    { name: 'U626 ST9 Зелёный киви', path: 'textures/color/U626 ST9 Зелёный киви.jpg' },
+    { name: 'U630 ST9 Зелёный лайм', path: 'textures/color/U630 ST9 Зелёный лайм.jpg' },
+    { name: 'U633 ST9 Бирюза зелёная', path: 'textures/color/U633 ST9 Бирюза зелёная.jpg' },
+    { name: 'U636 ST9 Фьёрд зелёный', path: 'textures/color/U636 ST9 Фьёрд зелёный.jpg' },
+    { name: 'U646 ST9 Ниагара зелёный', path: 'textures/color/U646 ST9 Ниагара зелёный.jpg' },
+    { name: 'U650 ST9 Папоротник зелёный', path: 'textures/color/U650 ST9 Папоротник зелёный.jpg' },
+    { name: 'U655 ST9 Зелёный изумрудный', path: 'textures/color/U655 ST9 Зелёный изумрудный.jpg' },
+    { name: 'U660 ST9 Зелёные джунгли', path: 'textures/color/U660 ST9 Зелёные джунгли.jpg' },
+    { name: 'U702 ST9 Кашемир серый', path: 'textures/color/U702 ST9 Кашемир серый.jpg' },
+    { name: 'U7021 ST9 Кашемир серый сплошной', path: 'textures/color/U7021 ST9 Кашемир серый сплошной.jpg' },
+    { name: 'U705 ST9 Ангора серая', path: 'textures/color/U705 ST9 Ангора серая.jpg' },
+    { name: 'U707 ST9 Шёлк серый', path: 'textures/color/U707 ST9 Шёлк серый.jpg' },
+    { name: 'U708 ST9 Светло-серый', path: 'textures/color/U708 ST9 Светло-серый.jpg' },
+    { name: 'U7081 ST9 Светло-серый сплошной', path: 'textures/color/U7081 ST9 Светло-серый сплошной.jpg' },
+    { name: 'U717 ST9 Дакар серый', path: 'textures/color/U717 ST9 Дакар серый.jpg' },
+    { name: 'U727 ST9 Серый камень', path: 'textures/color/U727 ST9 Серый камень.jpg' },
+    { name: 'U732 ST9 Серый пыльный', path: 'textures/color/U732 ST9 Серый пыльный.jpg' },
+    { name: 'U740 ST9 Cеро-коричневый тёмный', path: 'textures/color/U740 ST9 Cеро-коричневый тёмный.jpg' },
+    { name: 'U741 ST9 Лава серая', path: 'textures/color/U741 ST9 Лава серая.jpg' },
+    { name: 'U748 ST9 Трюфель коричневый', path: 'textures/color/U748 ST9 Трюфель коричневый.jpg' },
+    { name: 'U750 ST9 Ярко-серый', path: 'textures/color/U750 ST9 Ярко-серый.jpg' },
+    { name: 'U763 ST9 Серый перламутровый', path: 'textures/color/U763 ST9 Серый перламутровый.jpg' },
+    { name: 'U767 ST9 Кубанит серый', path: 'textures/color/U767 ST9 Кубанит серый.jpg' },
+    { name: 'U775 ST9 Бело-серый', path: 'textures/color/U775 ST9 Бело-серый.jpg' },
+    { name: 'U780 ST9 Серый монументальный', path: 'textures/color/U780 ST9 Серый монументальный.jpg' },
+    { name: 'U788 ST16 Арктика серый', path: 'textures/color/U788 ST16 Арктика серый.jpg' },
+    { name: 'U807 ST9 Нуга коричневый', path: 'textures/color/U807 ST9 Нуга коричневый.jpg' },
+    { name: 'U818 ST9 Тёмно-коричневый', path: 'textures/color/U818 ST9 Тёмно-коричневый.jpg' },
+    { name: 'U830 ST9 Карамель нюд', path: 'textures/color/U830 ST9 Карамель нюд.jpg' },
+    { name: 'U8991 ST9 Нежный чёрный сплошной', path: 'textures/color/U8991 ST9 Нежный чёрный сплошной.jpg' },
+    { name: 'U960 ST76 Оникс серый', path: 'textures/color/U960 ST76 Оникс серый.jpg' },
+    { name: 'U961 ST2 Чёрный графит', path: 'textures/color/U961 ST2 Чёрный графит.jpg' },
+    { name: 'U963 ST9 Диамант серый', path: 'textures/color/U963 ST9 Диамант серый.jpg' },
+    { name: 'U9631 ST9 Диамант серый сплошной', path: 'textures/color/U9631 ST9 Диамант серый сплошной.jpg' },
+    { name: 'U968 ST9 Серый уголь', path: 'textures/color/U968 ST9 Серый уголь.jpg' },
+    { name: 'U989 ST9 Чёрно-коричневый', path: 'textures/color/U989 ST9 Чёрно-коричневый.jpg' },
+    { name: 'U998 ST38 Лес чёрный', path: 'textures/color/U998 ST38 Лес чёрный.jpg' },
+    { name: 'U999 ST19 Чёрный', path: 'textures/color/U999 ST19 Чёрный.jpg' },
+    { name: 'W908 ST2 Белый базовый', path: 'textures/color/W908 ST2 Белый базовый.jpg' },
+
+    // --- АВТОСГЕНЕРИРОВАННЫЙ СПИСОК WOOD ---
+    { name: 'H1113 ST10', path: 'textures/wood/H1113 ST10.jpg' },
+    { name: 'H1115 ST12', path: 'textures/wood/H1115 ST12.jpg' },
+    { name: 'H1122 ST22', path: 'textures/wood/H1122 ST22.jpg' },
+    { name: 'H1123 ST22', path: 'textures/wood/H1123 ST22.jpg' },
+    { name: 'H1137 ST12', path: 'textures/wood/H1137 ST12.jpg' },
+    { name: 'H1145 ST10', path: 'textures/wood/H1145 ST10.jpg' },
+    { name: 'H1146 ST10', path: 'textures/wood/H1146 ST10.jpg' },
+    { name: 'H1150 ST10', path: 'textures/wood/H1150 ST10.jpg' },
+    { name: 'H1151 ST10', path: 'textures/wood/H1151 ST10.jpg' },
+    { name: 'H1176 ST37', path: 'textures/wood/H1176 ST37.jpg' },
+    { name: 'H1180 ST37', path: 'textures/wood/H1180 ST37.jpg' },
+    { name: 'H1181 ST37', path: 'textures/wood/H1181 ST37.jpg' },
+    { name: 'H1199 ST12', path: 'textures/wood/H1199 ST12.jpg' },
+    { name: 'H1210 ST33', path: 'textures/wood/H1210 ST33.jpg' },
+    { name: 'H1212 ST33', path: 'textures/wood/H1212 ST33.jpg' },
+    { name: 'H1250 ST36', path: 'textures/wood/H1250 ST36.jpg' },
+    { name: 'H1251 ST19', path: 'textures/wood/H1251 ST19.jpg' },
+    { name: 'H1252 ST19', path: 'textures/wood/H1252 ST19.jpg' },
+    { name: 'H1253 ST19', path: 'textures/wood/H1253 ST19.jpg' },
+    { name: 'H1277 ST9 Акация Лэйклэнд светлая', path: 'textures/wood/H1277 ST9 Акация Лэйклэнд светлая.jpg' },
+    { name: 'H1298 ST22 Ясень Лион песочно-бежевый', path: 'textures/wood/H1298 ST22 Ясень Лион песочно-бежевый.jpg' },
+    { name: 'H1312 ST10 Дуб Уайт-Ривер песочно-бежевый', path: 'textures/wood/H1312 ST10 Дуб Уайт-Ривер песочно-бежевый.jpg' },
+    { name: 'H1313 ST10 Дуб Уайт-Ривер серо-коричневый', path: 'textures/wood/H1313 ST10 Дуб Уайт-Ривер серо-коричневый.jpg' },
+    { name: 'H1318 ST10 Дикий дуб натуральный', path: 'textures/wood/H1318 ST10 Дикий дуб натуральный.jpg' },
+    { name: 'H1330 ST10 Дуб Санта-Фе винтаж', path: 'textures/wood/H1330 ST10 Дуб Санта-Фе винтаж.jpg' },
+    { name: 'H1331 ST10 Дуб Санта-Фе серый', path: 'textures/wood/H1331 ST10 Дуб Санта-Фе серый.jpg' },
+    { name: 'H1334 ST9 Дуб Сорано натуральный светлый', path: 'textures/wood/H1334 ST9 Дуб Сорано натуральный светлый.jpg' },
+    { name: 'H1336 ST37 Дуб Галифакс глазурованный песочно-серый', path: 'textures/wood/H1336 ST37 Дуб Галифакс глазурованный песочно-серый.jpg' },
+    { name: 'H1344 ST32 Дуб Шерман коньяк коричневый', path: 'textures/wood/H1344 ST32 Дуб Шерман коньяк коричневый.jpg' },
+    { name: 'H1345 ST32 Дуб Шерман серый', path: 'textures/wood/H1345 ST32 Дуб Шерман серый.jpg' },
+    { name: 'H1346 ST32 Дуб Шерман антрацит', path: 'textures/wood/H1346 ST32 Дуб Шерман антрацит.jpg' },
+    { name: 'H1377 ST36 Дуб Орлеанский песочно-бежевый', path: 'textures/wood/H1377 ST36 Дуб Орлеанский песочно-бежевый.jpg' },
+    { name: 'H1379 ST36 Дуб Орлеанский коричневый', path: 'textures/wood/H1379 ST36 Дуб Орлеанский коричневый.jpg' },
+    { name: 'H1387 ST10 Дуб Денвер графит', path: 'textures/wood/H1387 ST10 Дуб Денвер графит.jpg' },
+    { name: 'H1399 ST10Дуб Денвер трюфель', path: 'textures/wood/H1399 ST10Дуб Денвер трюфель.jpg' },
+    { name: 'H1400 ST36 Древесина Аттик', path: 'textures/wood/H1400 ST36 Древесина Аттик.jpg' },
+    { name: 'H1401 ST22 Сосна Касцина', path: 'textures/wood/H1401 ST22 Сосна Касцина.jpg' },
+    { name: 'H1424 ST22 Файнлайн крем', path: 'textures/wood/H1424 ST22 Файнлайн крем.jpg' },
+    { name: 'H1486 ST36 Сосна Пасадена', path: 'textures/wood/H1486 ST36 Сосна Пасадена.jpg' },
+    { name: 'H1487 ST22 Пихта Брамберг', path: 'textures/wood/H1487 ST22 Пихта Брамберг.jpg' },
+    { name: 'H1511 ST15 Бук Бавария', path: 'textures/wood/H1511 ST15 Бук Бавария.jpg' },
+    { name: 'H1582 ST15 Бук Эльмау', path: 'textures/wood/H1582 ST15 Бук Эльмау.jpg' },
+    { name: 'H1615 ST9 Вишня Верона', path: 'textures/wood/H1615 ST9 Вишня Верона.jpg' },
+    { name: 'H1636 ST12 Вишня Локарно', path: 'textures/wood/H1636 ST12 Вишня Локарно.jpg' },
+    { name: 'H1701 ST33 Вяз Тоссини белый', path: 'textures/wood/H1701 ST33 Вяз Тоссини белый.jpg' },
+    { name: 'H1702 ST33 Вяз Тоссини тёмно-коричневый', path: 'textures/wood/H1702 ST33 Вяз Тоссини тёмно-коричневый.jpg' },
+    { name: 'H1710 ST10 Каштан Кентукки песочный', path: 'textures/wood/H1710 ST10 Каштан Кентукки песочный.jpg' },
+    { name: 'H1714 ST19 Орех Линкольн', path: 'textures/wood/H1714 ST19 Орех Линкольн.jpg' },
+    { name: 'H1733 ST9 Берёза Майнау', path: 'textures/wood/H1733 ST9 Берёза Майнау.jpg' },
+    { name: 'H2033 ST10 Дуб Хантон тёмный', path: 'textures/wood/H2033 ST10 Дуб Хантон тёмный.jpg' },
+    { name: 'H3012 ST22 Кокоболо натуральный', path: 'textures/wood/H3012 ST22 Кокоболо натуральный.jpg' },
+    { name: 'H3058 ST22 Венге Мали', path: 'textures/wood/H3058 ST22 Венге Мали.jpg' },
+    { name: 'H3090 ST22 Древесина Шорвуд', path: 'textures/wood/H3090 ST22 Древесина Шорвуд.jpg' },
+    { name: 'H3131 ST12 Дуб Давос натуральный', path: 'textures/wood/H3131 ST12 Дуб Давос натуральный.jpg' },
+    { name: 'H3133 ST12 Дуб Давос трюфель', path: 'textures/wood/H3133 ST12 Дуб Давос трюфель.jpg' },
+    { name: 'H3146 ST19 Дуб Лоренцо бежево-серый', path: 'textures/wood/H3146 ST19 Дуб Лоренцо бежево-серый.jpg' },
+    { name: 'H3154 ST36 Дуб Чарльстон тёмно-коричневый', path: 'textures/wood/H3154 ST36 Дуб Чарльстон тёмно-коричневый.jpg' },
+    { name: 'H3156 ST12Дуб Корбридж серый', path: 'textures/wood/H3156 ST12Дуб Корбридж серый.jpg' },
+    { name: 'H3157 ST12 Дуб Винченца', path: 'textures/wood/H3157 ST12 Дуб Винченца.jpg' },
+    { name: 'H3158 ST19 Дуб Винченца серый', path: 'textures/wood/H3158 ST19 Дуб Винченца серый.jpg' },
+    { name: 'H3170 ST12 Дуб Кендал натуральный', path: 'textures/wood/H3170 ST12 Дуб Кендал натуральный.jpg' },
+    { name: 'H3171 ST12 Дуб Кендал промасленный', path: 'textures/wood/H3171 ST12 Дуб Кендал промасленный.jpg' },
+    { name: 'H3176 ST37 Дуб Галифакс олово', path: 'textures/wood/H3176 ST37 Дуб Галифакс олово.jpg' },
+    { name: 'H3178 ST37 Дуб Галифакс глазурованный чёрный', path: 'textures/wood/H3178 ST37 Дуб Галифакс глазурованный чёрный.jpg' },
+    { name: 'H3190 ST19 Металлик Файнлайн антрацит', path: 'textures/wood/H3190 ST19 Металлик Файнлайн антрацит.jpg' },
+    { name: 'H3192 ST19 Металлик Файнлайн коричневый', path: 'textures/wood/H3192 ST19 Металлик Файнлайн коричневый.jpg' },
+    { name: 'H3303 ST10 Дуб Гамильтон натуральный', path: 'textures/wood/H3303 ST10 Дуб Гамильтон натуральный.jpg' },
+    { name: 'H3309 ST28 Дуб Гладстоун песочный', path: 'textures/wood/H3309 ST28 Дуб Гладстоун песочный.jpg' },
+    { name: 'H3325 ST28 Дуб Гладстоун табак', path: 'textures/wood/H3325 ST28 Дуб Гладстоун табак.jpg' },
+    { name: 'H3326 ST28 Дуб Гладстоун серо-бежевый', path: 'textures/wood/H3326 ST28 Дуб Гладстоун серо-бежевый.jpg' },
+    { name: 'H3330 ST36 Дуб Антор натуральный', path: 'textures/wood/H3330 ST36 Дуб Антор натуральный.jpg' },
+    { name: 'H3331 ST10 Дуб Небраска натуральный', path: 'textures/wood/H3331 ST10 Дуб Небраска натуральный.jpg' },
+    { name: 'H3332 ST10Дуб Небраска серый', path: 'textures/wood/H3332 ST10Дуб Небраска серый.jpg' },
+    { name: 'H3335 ST28 Дуб Гладстоун белый', path: 'textures/wood/H3335 ST28 Дуб Гладстоун белый.jpg' },
+    { name: 'H3342 ST28 Дуб Гладстоун сепия', path: 'textures/wood/H3342 ST28 Дуб Гладстоун сепия.jpg' },
+    { name: 'H3344 ST36 Дуб Файнлайн натуральный', path: 'textures/wood/H3344 ST36 Дуб Файнлайн натуральный.jpg' },
+    { name: 'H3368 ST9 Дуб Ланкастер натуральный', path: 'textures/wood/H3368 ST9 Дуб Ланкастер натуральный.jpg' },
+    { name: 'H3395 ST12 Дуб Корбридж натуральный', path: 'textures/wood/H3395 ST12 Дуб Корбридж натуральный.jpg' },
+    { name: 'H3398 ST12 Дуб Кендал коньяк', path: 'textures/wood/H3398 ST12 Дуб Кендал коньяк.jpg' },
+    { name: 'H3403 ST38 Лиственница горная белая', path: 'textures/wood/H3403 ST38 Лиственница горная белая.jpg' },
+    { name: 'H3404 ST38 Лиственница горная коричневая', path: 'textures/wood/H3404 ST38 Лиственница горная коричневая.jpg' },
+    { name: 'H3406 ST38 Лиственница горная антрацит', path: 'textures/wood/H3406 ST38 Лиственница горная антрацит.jpg' },
+    { name: 'H3408 ST38 Лиственница горная коричневая термо', path: 'textures/wood/H3408 ST38 Лиственница горная коричневая термо.jpg' },
+    { name: 'H3430 ST22 Сосна Аланд белая', path: 'textures/wood/H3430 ST22 Сосна Аланд белая.jpg' },
+    { name: 'H3433 ST22 Сосна Аланд полярная', path: 'textures/wood/H3433 ST22 Сосна Аланд полярная.jpg' },
+    { name: 'H3450 ST22 Флитвуд белый', path: 'textures/wood/H3450 ST22 Флитвуд белый.jpg' },
+    { name: 'H3451 ST22 Флитвуд шампань', path: 'textures/wood/H3451 ST22 Флитвуд шампань.jpg' },
+    { name: 'H3453 ST22 Флитвуд серая лава', path: 'textures/wood/H3453 ST22 Флитвуд серая лава.jpg' },
+    { name: 'H3470 ST22 Пихта сучковатая натуральная', path: 'textures/wood/H3470 ST22 Пихта сучковатая натуральная.jpg' },
+    { name: 'H3700 ST10 Орех Пацифик натуральный', path: 'textures/wood/H3700 ST10 Орех Пацифик натуральный.jpg' },
+    { name: 'H3702 ST10 Орех Пацифик табак', path: 'textures/wood/H3702 ST10 Орех Пацифик табак.jpg' },
+    { name: 'H3710 ST9 Орех Карини натуральный', path: 'textures/wood/H3710 ST9 Орех Карини натуральный.jpg' },
+    { name: 'H3730 ST10 Гикори натуральный', path: 'textures/wood/H3730 ST10 Гикори натуральный.jpg' },
+    { name: 'H3734 ST9 Орех Дижон натуральный', path: 'textures/wood/H3734 ST9 Орех Дижон натуральный.jpg' },
+    { name: 'H3840 ST9 Клён Мандал натуральный', path: 'textures/wood/H3840 ST9 Клён Мандал натуральный.jpg' },
+    { name: 'H3860 ST9 Клён сахарный шампань', path: 'textures/wood/H3860 ST9 Клён сахарный шампань.jpg' },
+    { name: 'ЛДСП Egger Древесина Аттик Н1400 ST36 2800207016', path: 'textures/wood/ЛДСП Egger Древесина Аттик Н1400 ST36 2800207016.jpg' },
+    { name: 'ЛДСП Egger Древесина Белая Н1122 ST22 2800103016', path: 'textures/wood/ЛДСП Egger Древесина Белая Н1122 ST22 2800103016.jpg' },
+    { name: 'ЛДСП Egger Древесина графит H1123 ST22 2800207016', path: 'textures/wood/ЛДСП Egger Древесина графит H1123 ST22 2800207016.jpg' },
+    { name: 'ЛДСП Egger Древесина Шорвуд Н3090 ST22  2800207016', path: 'textures/wood/ЛДСП Egger Древесина Шорвуд Н3090 ST22  2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Аризона коричневый Н1151 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Аризона коричневый Н1151 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Бардолино натуральный Н1145 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Бардолино натуральный Н1145 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Бардолино серый  Н1146 ST 10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Бардолино серый  Н1146 ST 10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Винченца  H3157 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Винченца  H3157 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Галифакс белый  Н1176 ST37 2800103016', path: 'textures/wood/ЛДСП Egger Дуб Галифакс белый  Н1176 ST37 2800103016.jpg' },
+    { name: 'ЛДСП Egger Дуб Галифакс глазурованный чёрный H3178 ST37 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Галифакс глазурованный чёрный H3178 ST37 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Галифакс натуральный  Н1180 ST37 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Галифакс натуральный  Н1180 ST37 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Галифакс олово H3176 ST37 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Галифакс олово H3176 ST37 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Галифакс табак  Н1181 ST37 2800103016', path: 'textures/wood/ЛДСП Egger Дуб Галифакс табак  Н1181 ST37 2800103016.jpg' },
+    { name: 'ЛДСП Egger Дуб Гамильтон натуральный H3303 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Гамильтон натуральный H3303 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Гладстоун песочный  H3309 ST28 2800103016', path: 'textures/wood/ЛДСП Egger Дуб Гладстоун песочный  H3309 ST28 2800103016.jpg' },
+    { name: 'ЛДСП Egger Дуб Гладстоун сепия H3342 ST28 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Гладстоун сепия H3342 ST28 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Гладстоун серо-бежевый Н3326 ST28 2800103016', path: 'textures/wood/ЛДСП Egger Дуб Гладстоун серо-бежевый Н3326 ST28 2800103016.jpg' },
+    { name: 'ЛДСП Egger Дуб Гладстоун табак  H3325 ST28 2800103016', path: 'textures/wood/ЛДСП Egger Дуб Гладстоун табак  H3325 ST28 2800103016.jpg' },
+    { name: 'ЛДСП Egger Дуб Давос натуральный Н3131 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Давос натуральный Н3131 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Давос трюфель H3133 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Давос трюфель H3133 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Денвер графит Н1387 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Денвер графит Н1387 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Денвер трюфель Н1399 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Денвер трюфель Н1399 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Канзас коричневый Н1113 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Канзас коричневый Н1113 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Кендал коньяк Н3398 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Кендал коньяк Н3398 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Кендал Натуральный Н3170 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Кендал Натуральный Н3170 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Корбридж натуральный Н3395 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Корбридж натуральный Н3395 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Лоренцо бежево-серый H3146 ST19 2800_2070_16', path: 'textures/wood/ЛДСП Egger Дуб Лоренцо бежево-серый H3146 ST19 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Дуб Орлеанский коричневый Н1379 ST36 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Орлеанский коричневый Н1379 ST36 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Санта-Фе винтаж Н1330 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Санта-Фе винтаж Н1330 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Сорано натуральный светлый Н1334 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Сорано натуральный светлый Н1334 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Сорано черно-коричневый Н1137 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Сорано черно-коричневый Н1137 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб термо чёрно-коричневый Н1199 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Дуб термо чёрно-коричневый Н1199 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб термо чёрно-коричневый Н1199 ST12 2800_2070_16', path: 'textures/wood/ЛДСП Egger Дуб термо чёрно-коричневый Н1199 ST12 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Дуб Уайт-Ривер песочно-бежевый Н1312 ST10 2800_2070_16', path: 'textures/wood/ЛДСП Egger Дуб Уайт-Ривер песочно-бежевый Н1312 ST10 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Дуб Уайт-Ривер серо-коричневый Н1313 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Уайт-Ривер серо-коричневый Н1313 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Чарльстон темно-коричневый Н3154 ST36  2800207016', path: 'textures/wood/ЛДСП Egger Дуб Чарльстон темно-коричневый Н3154 ST36  2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Шерман коньяк коричневый Н1344 ST32 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Шерман коньяк коричневый Н1344 ST32 2800207016.jpg' },
+    { name: 'ЛДСП Egger Дуб Шерман серый Н1345 ST32 2800207016', path: 'textures/wood/ЛДСП Egger Дуб Шерман серый Н1345 ST32 2800207016.jpg' },
+    { name: 'ЛДСП Egger Желтый бриллиант U114 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Желтый бриллиант U114 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Зебрано песочно-бежевый Н3006 ST22  2800_2070_16', path: 'textures/wood/ЛДСП Egger Зебрано песочно-бежевый Н3006 ST22  2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Зелёный изумрудный  U655 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Зелёный изумрудный  U655 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Зелёный киви U626 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Зелёный киви U626 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Зелёный лес U606 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Зелёный лес U606 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Зеленый лайм U630 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Зеленый лайм U630 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Камель бежевый U216 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Камель бежевый U216 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Камень Пьетра Гриджиа чёрный F206 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Камень Пьетра Гриджиа чёрный F206 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Кашемир серый U702 ST16 2800207016', path: 'textures/wood/ЛДСП Egger Кашемир серый U702 ST16 2800207016.jpg' },
+    { name: 'ЛДСП Egger Кашемир серый U702 ST9 2800_2070_16', path: 'textures/wood/ЛДСП Egger Кашемир серый U702 ST9 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Клён сахарный шампань Н3860 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Клён сахарный шампань Н3860 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Клен мандал натуральный Н3840 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Клен мандал натуральный Н3840 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Кокоболо натуральный Н3012 ST22  2800207016', path: 'textures/wood/ЛДСП Egger Кокоболо натуральный Н3012 ST22  2800207016.jpg' },
+    { name: 'ЛДСП Egger Коттон бежевый U113 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Коттон бежевый U113 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Красный китайский  U321 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Красный китайский  U321 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Крем бежевый U222 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Крем бежевый U222 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Кубанит серый U767 SТ9 2800207016', path: 'textures/wood/ЛДСП Egger Кубанит серый U767 SТ9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Лён антрацит F433 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Лён антрацит F433 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Лава Серая  U741 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Лава Серая  U741 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Лен бежевый F425 ST10 2800_2070_16', path: 'textures/wood/ЛДСП Egger Лен бежевый F425 ST10 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Лес Черный  U998 ST38 2800207016', path: 'textures/wood/ЛДСП Egger Лес Черный  U998 ST38 2800207016.jpg' },
+    { name: 'ЛДСП Egger Лес Черный U998 ST38 2800_2070_16', path: 'textures/wood/ЛДСП Egger Лес Черный U998 ST38 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Лиственница горная коричневая термо H3408 ST38 2800207016', path: 'textures/wood/ЛДСП Egger Лиственница горная коричневая термо H3408 ST38 2800207016.jpg' },
+    { name: 'ЛДСП Egger Макассар мокка Н1101 ST12 2800_2070_16', path: 'textures/wood/ЛДСП Egger Макассар мокка Н1101 ST12 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Махагон Н3080 ST15 2800_2070_16', path: 'textures/wood/ЛДСП Egger Махагон Н3080 ST15 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Металлик золото F571 ST2 2800_2070_16', path: 'textures/wood/ЛДСП Egger Металлик золото F571 ST2 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Металлик медь F570 ST2 2800_2070_16', path: 'textures/wood/ЛДСП Egger Металлик медь F570 ST2 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Металлик Файнлайн антрацит H3190 ST19 2800_2070_16', path: 'textures/wood/ЛДСП Egger Металлик Файнлайн антрацит H3190 ST19 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Металлик Файнлайн коричневый Н3192 ST19 2800_2070_16', path: 'textures/wood/ЛДСП Egger Металлик Файнлайн коричневый Н3192 ST19 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Мрамор Каррара белый F204 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Мрамор Каррара белый F204 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Нежный черный U899 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Нежный черный U899 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Оникс серый U960 ST9  2800207016', path: 'textures/wood/ЛДСП Egger Оникс серый U960 ST9  2800207016.jpg' },
+    { name: 'ЛДСП Egger Оранжевый U332 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Оранжевый U332 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Орех Аида Табак H3704 ST15 2800_2070_16', path: 'textures/wood/ЛДСП Egger Орех Аида Табак H3704 ST15 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Орех Дижон натуральный H3734 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Орех Дижон натуральный H3734 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Орех Карини натуральный H3710 ST12 2800207016', path: 'textures/wood/ЛДСП Egger Орех Карини натуральный H3710 ST12 2800207016.jpg' },
+    { name: 'ЛДСП Egger Орех Карини табак Н3711 ST9 2800_2070_16', path: 'textures/wood/ЛДСП Egger Орех Карини табак Н3711 ST9 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Орех Линкольн H1714 ST19 2800207016', path: 'textures/wood/ЛДСП Egger Орех Линкольн H1714 ST19 2800207016.jpg' },
+    { name: 'ЛДСП Egger Орех Пацифик натуральный H3700 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Орех Пацифик натуральный H3700 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Орех пацифик табак H3702 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Орех пацифик табак H3702 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Орех пацифик табак H3702 ST10 2800_2070_16', path: 'textures/wood/ЛДСП Egger Орех пацифик табак H3702 ST10 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Орех Рибера Н1114 ST9 2800_2070_16', path: 'textures/wood/ЛДСП Egger Орех Рибера Н1114 ST9 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Пихта Брамберг Н1487 ST22  2800207016', path: 'textures/wood/ЛДСП Egger Пихта Брамберг Н1487 ST22  2800207016.jpg' },
+    { name: 'ЛДСП Egger Робиния Брэнсон натуральная коричневая H1251 ST19 2800207016', path: 'textures/wood/ЛДСП Egger Робиния Брэнсон натуральная коричневая H1251 ST19 2800207016.jpg' },
+    { name: 'ЛДСП Egger Розовый антик  U325 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Розовый антик  U325 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Светло-Серый U708 ST9 2800103016', path: 'textures/wood/ЛДСП Egger Светло-Серый U708 ST9 2800103016.jpg' },
+    { name: 'ЛДСП Egger Серая галька U201 ST19 2800207016', path: 'textures/wood/ЛДСП Egger Серая галька U201 ST19 2800207016.jpg' },
+    { name: 'ЛДСП Egger Серая галька U201 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Серая галька U201 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Серый камень U727 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Серый камень U727 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Серый Перламутровый U763 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Серый Перламутровый U763 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Серый пыльный U732 ST30ST2 2800207016', path: 'textures/wood/ЛДСП Egger Серый пыльный U732 ST30ST2 2800207016.jpg' },
+    { name: 'ЛДСП Egger Серый пыльный U732 ST9', path: 'textures/wood/ЛДСП Egger Серый пыльный U732 ST9.jpg' },
+    { name: 'ЛДСП Egger Серый пыльный глянец U732 ST30_ST30 2800_2070_16', path: 'textures/wood/ЛДСП Egger Серый пыльный глянец U732 ST30_ST30 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Серый уголь U968 ST9  2800207016', path: 'textures/wood/ЛДСП Egger Серый уголь U968 ST9  2800207016.jpg' },
+    { name: 'ЛДСП Egger Синяя глубина U560 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Синяя глубина U560 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Сосна Аланд белая Н3430 ST22 2800103016', path: 'textures/wood/ЛДСП Egger Сосна Аланд белая Н3430 ST22 2800103016.jpg' },
+    { name: 'ЛДСП Egger Сосна Аланд полярная Н3433 ST22 2800103016', path: 'textures/wood/ЛДСП Egger Сосна Аланд полярная Н3433 ST22 2800103016.jpg' },
+    { name: 'ЛДСП Egger Сосна Альпийская Н1444 ST9 2800_2070_16', path: 'textures/wood/ЛДСП Egger Сосна Альпийская Н1444 ST9 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Сосна Гавана белая Н3078 ST22 2800_2070_16', path: 'textures/wood/ЛДСП Egger Сосна Гавана белая Н3078 ST22 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Сосна Гавана черная Н3081 ST22 2800_2070_16', path: 'textures/wood/ЛДСП Egger Сосна Гавана черная Н3081 ST22 2800_2070_16.jpg' },
+    { name: 'ЛДСП Egger Сосна Касцина Н1401 ST22 2800103016', path: 'textures/wood/ЛДСП Egger Сосна Касцина Н1401 ST22 2800103016.jpg' },
+    { name: 'ЛДСП Egger Сосна Пасадена Н1486 ST36  2800103016', path: 'textures/wood/ЛДСП Egger Сосна Пасадена Н1486 ST36  2800103016.jpg' },
+    { name: 'ЛДСП Egger Тёмно-коричневый  U818 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Тёмно-коричневый  U818 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Текстиль Бежевый F416 ST10 2800207016', path: 'textures/wood/ЛДСП Egger Текстиль Бежевый F416 ST10 2800207016.jpg' },
+    { name: 'ЛДСП Egger Трюфель Коричневый  U748 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Трюфель Коричневый  U748 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Фанлайн крем Н1424 ST22 2800207016', path: 'textures/wood/ЛДСП Egger Фанлайн крем Н1424 ST22 2800207016.jpg' },
+    { name: 'ЛДСП Egger Ферро Бронза F302 ST87 2800207016', path: 'textures/wood/ЛДСП Egger Ферро Бронза F302 ST87 2800207016.jpg' },
+    { name: 'ЛДСП Egger Фламинго розовый U363 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Фламинго розовый U363 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Флитвуд Белый Н3450 ST22 2800207016', path: 'textures/wood/ЛДСП Egger Флитвуд Белый Н3450 ST22 2800207016.jpg' },
+    { name: 'ЛДСП Egger Флитвуд серая лава Н3453 ST22 2800207016', path: 'textures/wood/ЛДСП Egger Флитвуд серая лава Н3453 ST22 2800207016.jpg' },
+    { name: 'ЛДСП Egger Флитвуд шампань Н3451 ST22 2800207016', path: 'textures/wood/ЛДСП Egger Флитвуд шампань Н3451 ST22 2800207016.jpg' },
+    { name: 'ЛДСП Egger Фуксия розовая U337 ST9 2800207016', path: 'textures/wood/ЛДСП Egger Фуксия розовая U337 ST9 2800207016.jpg' },
+    { name: 'ЛДСП Egger Хромикс белый F637 ST16 2800207016', path: 'textures/wood/ЛДСП Egger Хромикс белый F637 ST16 2800207016.jpg' },
+
+];
 const mm = (n) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n);
 const dimensionText = (values) => values.map(mm).join(' × ');
 const sizeLabel = (bytes) => new Intl.NumberFormat('ru', { maximumFractionDigits: 1 }).format(bytes / 1024) + ' КБ';
@@ -532,21 +859,25 @@ let contactModel = null,
     contactContours = new Set();
 function updateSelectionHardware() {
     if (!model) return;
-    const part =
-        $('selection-hardware').checked && highlighted && !highlighted.userData.isHardware ? highlighted : null;
+    
+    const part = $('selection-hardware').checked && highlighted && !highlighted.userData.isHardware ? highlighted : null;
+    
     if (model !== contactModel || part !== contactPart) {
         contactModel = model;
         contactPart = part;
         contactContours = new Set();
+        
         if (part) {
             const inverse = part.userData.localMatrix.clone().invert();
             const localGeometry = part.geometry.clone().applyMatrix4(inverse);
             localGeometry.computeBoundingBox();
             const bounds = localGeometry.boundingBox.clone().expandByScalar(0.3);
             localGeometry.dispose();
-            const ray = new THREE.Ray(),
-                hit = new THREE.Vector3();
+            const ray = new THREE.Ray(), hit = new THREE.Vector3();
+                
+            // Старая проверка для контуров (линий)
             for (const contour of model.hardware.children) {
+                if (contour.isMesh) continue; // Пропускаем 3D-цилиндры, они проверятся по ID
                 const positions = contour.geometry?.attributes.position;
                 if (!positions) continue;
                 for (let i = 0; i + 1 < positions.count; i += 2) {
@@ -556,8 +887,7 @@ function updateSelectionHardware() {
                         contactContours.add(contour);
                         break;
                     }
-                    const direction = b.clone().sub(a),
-                        length = direction.length();
+                    const direction = b.clone().sub(a), length = direction.length();
                     if (!length) continue;
                     ray.set(a, direction.divideScalar(length));
                     if (ray.intersectBox(bounds, hit) && hit.distanceTo(a) <= length) {
@@ -568,11 +898,43 @@ function updateSelectionHardware() {
             }
         }
     }
+
     const showAllContours = $('hardware').checked && !isolated;
+    
+    // Собираем ID выделенных панелей (для поиска 3D-цилиндров)
+    const selectedIds = new Set();
+    if (highlighted) selectedIds.add(highlighted.userData.treeNodeId);
+    if (highlightedGroup) [...highlightedGroup.parts].forEach(p => selectedIds.add(p.userData.treeNodeId));
+
     let visible = false;
-    for (const contour of model.hardware.children) {
-        contour.visible = showAllContours || contactContours.has(contour);
-        visible ||= contour.visible;
+    for (const child of model.hardware.children) {
+        let isContact = contactContours.has(child);
+        
+        // Проверяем по ID (наши 3D-цилиндры)
+        if (!isContact && child.userData.treeNodeId && selectedIds.has(child.userData.treeNodeId)) {
+            isContact = true;
+        }
+        
+        child.visible = showAllContours || isContact;
+        
+        // Включаем зеленую подсветку, если фурнитура относится к выделенной панели
+        if (child.material) {
+            if (isContact) {
+                // Делаем так, чтобы сквозь панель было видно
+                child.material.depthTest = false;
+                child.renderOrder = 10;
+                // Включаем зеленую подсветку
+                if (child.material.emissive) child.material.emissive.setHex(0x263e0a); 
+            } else {
+                child.material.depthTest = true;
+                child.renderOrder = 3;
+                // Выключаем подсветку
+                if (child.material.emissive && !child.userData.glow) {
+                    child.material.emissive.setHex(0x000000);
+                }
+            }
+        }
+        visible ||= child.visible;
     }
     model.hardware.visible = visible;
 }
@@ -740,12 +1102,17 @@ function selectPart(part, additive = false) {
     if (part) {
         part.material.emissive.setHex(0x263e0a);
         const bounds = new THREE.Box3().setFromObject(part);
+        
+        // Рамка создается для ЛЮБОЙ выбранной детали
         engine.selectionBox = new THREE.Box3Helper(bounds, 0x5e862e);
         engine.selectionBox.material.depthTest = false;
         engine.selectionBox.renderOrder = 4;
         engine.scene.add(engine.selectionBox);
+
         $('selected-name').textContent = part.name;
         $('part-position').textContent = part.userData.artPos || 'Не указана';
+        $('part-dimensions').textContent = dimensionText(part.userData.dimensions);
+        $('selected-info').textContent = part.userData.materialName || 'Не указан';
         $('part-dimensions').textContent = dimensionText(part.userData.dimensions);
         $('selected-info').textContent = part.userData.materialName || 'Не указан';
         $('part-layers').hidden = !part.userData.isLayered;
@@ -1205,9 +1572,30 @@ function updateMaterialGlow(panel) {
         material.emissiveMap = map;
         material.needsUpdate = true;
     }
-    if (panel.userData.glow) material.emissive.set((panel.userData.light || defaultLight).color).convertSRGBToLinear();
-    else material.emissive.setHex(panel === highlighted || highlightedGroup?.parts.has(panel) ? 0x263e0a : 0);
+
+    // Проверяем, выбрана ли сама панель ИЛИ фурнитура, принадлежащая этой панели
+    let isSelected = panel === highlighted || highlightedGroup?.parts.has(panel);
+    
+    if (!isSelected && panel.userData.isHardware && panel.userData.treeNodeId) {
+        // Если выбрана одна панель
+        if (highlighted && highlighted.userData.treeNodeId === panel.userData.treeNodeId) {
+            isSelected = true;
+        } 
+        // Если выбрана группа панелей (через Shift или дерево)
+        else if (highlightedGroup) {
+            isSelected = [...highlightedGroup.parts].some(p => p.userData.treeNodeId === panel.userData.treeNodeId);
+        }
+    }
+
+    if (panel.userData.glow) {
+        material.emissive.set((panel.userData.light || defaultLight).color).convertSRGBToLinear();
+    } else {
+        // Подсвечиваем зеленым, если это выбранная панель или её фурнитура
+        material.emissive.setHex(isSelected ? 0x263e0a : 0);
+    }
+    
     material.emissiveIntensity = panel.userData.glow ? (panel.userData.light || defaultLight).power : 1;
+    
     const shader = material.userData.ledShader,
         face = panel.userData.light?.face;
     if (shader) {
@@ -1697,6 +2085,22 @@ async function openFile(file) {
         if (token !== request) return;
         const parsed = BazisB3D.parse(buffer, inflateModel),
             next = BazisScene.build(parsed, THREE);
+        // --- ДОБАВЛЯЕМ АВТОПРИМЕНЕНИЕ ЦВЕТОВ ---
+        next.panels.forEach(panel => {
+            const matName = (panel.userData.materialName || '').toLowerCase();
+            // Ищем совпадение в базе
+            for (const [key, props] of Object.entries(materialDatabase)) {
+                if (matName.includes(key)) {
+                    // Применяем цвет
+                    panel.material.color.set(props.color).convertSRGBToLinear();
+                    if (props.roughness !== undefined) panel.material.roughness = props.roughness;
+                    if (props.metalness !== undefined) panel.material.metalness = props.metalness;
+                    panel.material.needsUpdate = true;
+                    break; // Нашли совпадение - выходим из цикла
+                }
+            }
+        });
+        // ---------------------------------------
         if (!next.panels.length) {
             for (const g of [next.group, next.hardware])
                 g.traverse((o) => {
@@ -1706,6 +2110,30 @@ async function openFile(file) {
             throw new Error('Поддерживаемая геометрия не найдена в модели.');
         }
         model = next;
+        // --- ДОБАВЛЯЕМ СТИЛИ ДЛЯ ФУРНИТУРЫ ---
+        if (model.hardware && model.hardware.children.length > 0) {
+            // Создаем красивый материал (хром/сталь)
+            const metalMaterial = new THREE.MeshStandardMaterial({
+                color: 0xaaaaaa,      // Серебристый цвет
+                metalness: 0.95,      // Максимальный блеск металла
+                roughness: 0.15,      // Гладкая, полированная поверхность
+                envMapIntensity: 1.0
+            });
+
+            model.hardware.traverse((child) => {
+                // Если это 3D-меш (ручка, петля)
+                if (child.isMesh) {
+                    child.material = metalMaterial;
+                    child.castShadow = true; // Включаем тени для фурнитуры
+                    child.receiveShadow = true;
+                }
+                // Если это линии (контуры привязки фурнитуры)
+                else if (child.isLineSegments || child.isLine) {
+                    if (child.material) child.material.color.setHex(0x555555);
+                }
+            });
+        }
+        // ------------------------------------
         treeTools.setModel(model, file.name);
         engine.scene.add(model.group, model.hardware);
         model.hardware.visible = $('hardware').checked;
@@ -2119,5 +2547,128 @@ if (mobileLayout.addEventListener)
         }
     });
 syncRenderControls();
+// ==========================================
+// ЛОГИКА ГАЛЕРЕИ ТЕКСТУР
+// ==========================================
+function renderTextureGallery() {
+    const grid = $('texture-modal-grid');
+    if (!grid) return;
+    
+    // Очищаем сетку
+    grid.replaceChildren();
+    
+    // Получаем текст из поиска
+    const query = ($('texture-search')?.value || '').toLowerCase();
+    const filtered = textureLibrary.filter(tex => tex.name.toLowerCase().includes(query));
 
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #777; padding: 20px; font-size: 16px;">Ничего не найдено</div>';
+        return;
+    }
+
+    // Создаем Observer для ленивой загрузки
+    const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                if (img.dataset.src) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                }
+                obs.unobserve(img); // Отписываемся после загрузки
+            }
+        });
+    }, { root: grid, rootMargin: '200px' }); // 200px - начинаем грузить чуть заранее
+
+    filtered.forEach(tex => {
+        const card = document.createElement('div');
+        card.style.cssText = 'display: flex; flex-direction: column; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.1s;';
+        
+        const img = document.createElement('img');
+        img.dataset.src = tex.path;
+        // ИСПОЛЬЗУЕМ СОВРЕМЕННЫЙ ASPECT-RATIO ВМЕСТО PADDING-TOP
+        img.style.cssText = 'width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #e0e0e0; opacity: 0; transition: opacity 0.3s; display: block;';
+        img.onload = () => { img.style.opacity = '1'; };
+
+        const label = document.createElement('div');
+        label.style.cssText = 'padding: 8px; font-size: 11px; color: #333; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+        label.textContent = tex.name;
+
+        card.appendChild(img);
+        card.appendChild(label);
+
+        card.onmouseenter = () => card.style.transform = 'scale(1.03)';
+        card.onmouseleave = () => card.style.transform = 'scale(1)';
+
+        // КЛИК ПО ТЕКСТУРЕ
+        card.onclick = async () => {
+            if (!colorTargets().length) {
+                alert('Сначала выберите деталь или материал в 3D-окне!');
+                return;
+            }
+            
+            try {
+                label.textContent = 'Загрузка...';
+                await new Promise((resolve, reject) => {
+                    const fullImg = new Image();
+                    fullImg.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = fullImg.width;
+                        canvas.height = fullImg.height;
+                        canvas.getContext('2d').drawImage(fullImg, 0, 0);
+                        canvas.toBlob(async (blob) => {
+                            const file = new File([blob], tex.name + '.jpg', { type: 'image/jpeg' });
+                            await chooseTexture(file);
+                            $('texture-status').textContent = 'Применено: ' + tex.name;
+                            $('texture-modal').style.display = 'none';
+                            resolve();
+                        }, 'image/jpeg', 0.95);
+                    };
+                    fullImg.onerror = () => reject(new Error('Файл не найден'));
+                    fullImg.src = tex.path;
+                });
+            } catch (err) {
+                console.error(err);
+                alert('Ошибка загрузки файла: ' + tex.path);
+                label.textContent = tex.name;
+            }
+        };
+
+        grid.appendChild(card);
+        observer.observe(img); // Наблюдаем за картинкой
+    });
+}
+
+// === ОБРАБОТЧИКИ ДЛЯ МОДАЛЬНОГО ОКНА ===
+if ($('open-texture-modal')) {
+    $('open-texture-modal').onclick = () => {
+        $('texture-modal').style.display = 'flex';
+        $('texture-search').value = ''; // Сбрасываем поиск при открытии
+        renderTextureGallery();
+    };
+}
+
+if ($('close-texture-modal')) {
+    $('close-texture-modal').onclick = () => {
+        $('texture-modal').style.display = 'none';
+    };
+}
+
+if ($('texture-modal')) {
+    // Закрытие по клику на Тёмный фон
+    $('texture-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'texture-modal') $('texture-modal').style.display = 'none';
+    });
+}
+
+if ($('texture-search')) {
+    // Поиск по текстурам (срабатывает при вводе буквы)
+    $('texture-search').addEventListener('input', renderTextureGallery);
+}
+
+// Вызываем отрисовку при старте (на случай если окно уже открыто)
+renderTextureGallery();
+
+// Вызываем отрисовку галереи при запуске страницы
+renderTextureGallery();
 renderLocalFiles();
