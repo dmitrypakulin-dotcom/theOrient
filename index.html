@@ -6,13 +6,17 @@
     <meta name="color-scheme" content="light" />
     <meta
         name="description"
-        content="Просмотрщик B3D: открывайте модели БАЗИС, изучайте детали, измеряйте и меняйте материалы прямо в браузере."
+        content="theOrient — просмотрщик B3D: открывайте модели БАЗИС, изучайте детали, измеряйте и меняйте материалы прямо в браузере."
     />
-    <title>Nebro B3D</title>
+    <title>theOrient — B3D Viewer</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="vendor/three.min.js" defer></script>
-    <script src="vendor/OrbitControls.js" defer></script>
-    <script src="vendor/pako_inflate.min.js" defer></script>
+    
+    <!-- Подключаем библиотеки через CDN (вместо папки vendor) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako_inflate.min.js" defer></script>
+    
+    <!-- Ваши скрипты -->
     <script src="b3d-parser.js" defer></script>
     <script src="b3d-cuts.js" defer></script>
     <script src="b3d-hardware.js" defer></script>
