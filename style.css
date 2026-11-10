@@ -50,10 +50,35 @@
     font-size: 21px;
     line-height: 1;
     font-weight: 700;
-    letter-spacing: -0.8px;
     white-space: nowrap;
 }
-.brand-wordmark .app-name > span {
+
+/* Обертка для "theOrient" */
+.brand-wordmark .app-name .brand-name {
+    display: inline-flex;
+    align-items: baseline;
+    letter-spacing: -0.8px;
+}
+
+/* Слово "the" - маленькое, серое, курсивное */
+.brand-wordmark .app-name .brand-the {
+    font-size: 0.7em;
+    font-weight: 400;
+    font-style: italic;
+    color: #7a8778;
+    margin-right: 2px;
+    letter-spacing: 0;
+}
+
+/* Слово "Orient" - крупное, темно-зеленое */
+.brand-wordmark .app-name .brand-orient {
+    font-weight: 700;
+    color: #263629;
+    letter-spacing: -0.8px;
+}
+
+/* Бейдж B3D */
+.brand-wordmark .app-name .brand-badge {
     padding: 5px 7px;
     border: 1px solid #dce7d2;
     border-radius: 5px;
@@ -63,7 +88,7 @@
     line-height: 1;
     font-weight: 600;
     letter-spacing: 1.5px;
-}
+} /* <--- ВОТ ЭТА СКОБКА ОЧЕНЬ ВАЖНА, БЕЗ НЕЁ САЙТ СЛОМАЕТСЯ */
 .viewport-header .document-title .brand-wordmark h1 {
     margin: 0;
     font-size: 10px;
@@ -81,7 +106,8 @@
         font-size: 19px;
         gap: 8px;
     }
-    .brand-wordmark .app-name > span {
+    /* Заменили > span на .brand-badge */
+    .brand-wordmark .app-name .brand-badge {
         font-size: 8px;
         letter-spacing: 1.2px;
     }
