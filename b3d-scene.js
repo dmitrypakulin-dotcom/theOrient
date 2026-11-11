@@ -232,7 +232,28 @@
                         });
 
                         // ... расчет UV ...
-                        const UVGenerator = { /* ... */ };
+                        const UVGenerator = {
+                            generateTopUV(geometry, vertices, a, b, c) {
+                                return [a, b, c].map(
+                                    (index) =>
+                                        new THREE.Vector2(vertices[index * 3] - minX, vertices[index * 3 + 1] - minY)
+                                );
+                            },
+                            generateSideWallUV(geometry, vertices, a, b, c, d) {
+                                const dx = vertices[b * 3] - vertices[a * 3],
+                                    dy = vertices[b * 3 + 1] - vertices[a * 3 + 1],
+                                    length = Math.hypot(dx, dy) || 1;
+                                return [a, b, c, d].map(
+                                    (index) =>
+                                        new THREE.Vector2(
+                                            ((vertices[index * 3] - minX) * dx +
+                                                (vertices[index * 3 + 1] - minY) * dy) /
+                                                length,
+                                            vertices[index * 3 + 2]
+                                        )
+                                );
+                            }
+                        };
 
                         let geometry;
                         if (revolution) {
